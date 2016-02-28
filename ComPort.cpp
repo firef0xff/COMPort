@@ -1,86 +1,97 @@
-#pragma hdrstop
-
 #include "ComPort.h"
+#include <stdexcept>
+#include <thread>
 
-#pragma package(smart_init)
-//конструкторы /деструктор
-		COMPort::COMPort (const wchar_t * const portName,
-							COMMTIMEOUTS *_Timeouts,
-							unsigned int CommMask,
-							unsigned int InputBuffer,
-							unsigned int Outputbuffer)
+//РєРѕРЅСЃС‚СЂСѓРєС‚РѕСЂС‹ /РґРµСЃС‚СЂСѓРєС‚РѕСЂ
+COMPort::COMPort ( std::string const& portName,
+                    std::unique_ptr< COMMTIMEOUTS > _Timeouts,
+                    unsigned int CommMask,
+                    unsigned int InputBuffer,
+                    unsigned int Outputbuffer):
+    port_name( portName ),
+    TimeOuts( std::move( _Timeouts ) ),
+    ComDCM(),
+    PortHandle( 0 )
 {
-	ComDCM=0;
-	port_name=portName;
-	PortHandle =CreateFileW(portName,GENERIC_READ | GENERIC_WRITE,0,NULL,OPEN_EXISTING,
-						FILE_ATTRIBUTE_NORMAL,NULL);
-	if (PortHandle == (HANDLE)-1)
-		{
-			PortHandle = 0;
-			throw Exception("COMPort: failed to open.");
-		}
-	SetCommMask(PortHandle, CommMask);
-	SetupComm(PortHandle, InputBuffer, Outputbuffer);
+    PortHandle = CreateFileA( portName.c_str(),
+                              GENERIC_READ | GENERIC_WRITE,
+                              0,
+                              NULL,
+                              OPEN_EXISTING,
+                              FILE_ATTRIBUTE_NORMAL,
+                              NULL);
+    if ( PortHandle == reinterpret_cast<HANDLE>( -1 ) )
+    {
+        PortHandle = 0;
+        throw std::runtime_error("COMPort: failed to open.");
+    }
+    SetCommMask( PortHandle, CommMask );
+    SetupComm( PortHandle, InputBuffer, Outputbuffer );
 
-	TimeOuts=_Timeouts;
-	if(!SetCommTimeouts(PortHandle, TimeOuts))
+    if( !SetCommTimeouts( PortHandle, TimeOuts.get() ) )
 	{
 		PortHandle = 0;
-		throw Exception("Ошибка настройки COMMTIMEOUTS");
+        throw std::runtime_error("РћС€РёР±РєР° РЅР°СЃС‚СЂРѕР№РєРё COMMTIMEOUTS");
 	}
 }
-		COMPort::COMPort ( const wchar_t * const portName )
+
+COMPort::COMPort (const string &portName ):
+    port_name( portName ),
+    TimeOuts( new COMMTIMEOUTS() ),
+    ComDCM(),
+    PortHandle( 0 )
 {
-	ComDCM=0;
-	port_name=portName;
-	PortHandle =CreateFileW(portName,GENERIC_READ | GENERIC_WRITE,0,NULL,OPEN_EXISTING,
-						FILE_ATTRIBUTE_NORMAL,NULL);
+    PortHandle = CreateFileA( portName.c_str(),
+                              GENERIC_READ | GENERIC_WRITE,
+                              0,
+                              NULL,
+                              OPEN_EXISTING,
+                              FILE_ATTRIBUTE_NORMAL,
+                              NULL);
 
-	if (PortHandle == (HANDLE)-1)
-	{
-		PortHandle = 0;
-		throw Exception("COMPort: failed to open.");
-	}
+    if ( PortHandle == reinterpret_cast<HANDLE>( -1 ) )
+    {
+        PortHandle = 0;
+        throw std::runtime_error("COMPort: failed to open.");
+    }
 
-	SetCommMask(PortHandle, EV_RXCHAR);
-	SetupComm(PortHandle, 1024, 1024);
+    SetCommMask( PortHandle, EV_RXCHAR );
+    SetupComm( PortHandle, 1024, 1024 );
 
-	TimeOuts=new COMMTIMEOUTS();
 	TimeOuts->ReadIntervalTimeout = 0xFFFFFFFF;
 	TimeOuts->ReadTotalTimeoutMultiplier = 0;
 	TimeOuts->ReadTotalTimeoutConstant = 0;
 	TimeOuts->WriteTotalTimeoutMultiplier = 0;
 	TimeOuts->WriteTotalTimeoutConstant =0;
 
-	if(!SetCommTimeouts(PortHandle, TimeOuts))
+    if( !SetCommTimeouts( PortHandle, TimeOuts.get() ) )
 	{
 		PortHandle = 0;
-		throw Exception("Ошибка настройки COMMTIMEOUTS");
+        throw std::runtime_error("РћС€РёР±РєР° РЅР°СЃС‚СЂРѕР№РєРё COMMTIMEOUTS");
 	}
-	if (!Set_DCB_Settings(BR_9600,NOparity,OFF,ONE))
+    if ( !Set_DCB_Settings( BR_9600, NOparity, OFF, ONE ) )
 	{
-		CloseHandle(PortHandle);
+        CloseHandle( PortHandle );
 		PortHandle = 0;
-		throw Exception("Ошибка настройки DCB");
+        throw std::runtime_error("РћС€РёР±РєР° РЅР°СЃС‚СЂРѕР№РєРё DCB");
 	}
 }
-		COMPort::~COMPort()
+
+COMPort::~COMPort()
 {
 	// close serial port device
-	//delete []port_name;
-	delete ComDCM;
-	delete TimeOuts;
-	if (!CloseHandle (PortHandle))
+    if ( !CloseHandle (PortHandle) )
 	{
-	   throw Exception("COMPort: failed to close.");
+       throw std::runtime_error("COMPort: failed to close.");
 	}
 }
-//настройка порта
-bool 	COMPort::Set_DCB_Settings(BaudRates BaudRate,Patitys patity,fPatitys f_parity,StopBits stop_bits)
+
+//РЅР°СЃС‚СЂРѕР№РєР° РїРѕСЂС‚Р°
+bool COMPort::Set_DCB_Settings( BaudRates BaudRate, Paritys patity, fParitys f_parity, StopBits stop_bits )
 {
-	if (!ComDCM)
+    if ( !ComDCM )
 	{
-		ComDCM=Get_port_Settings();
+        ComDCM = Get_port_Settings();
 	}
 	ComDCM->BaudRate =BaudRate;
 	ComDCM->ByteSize = 8;
@@ -102,79 +113,76 @@ bool 	COMPort::Set_DCB_Settings(BaudRates BaudRate,Patitys patity,fPatitys f_par
 	ComDCM->XonLim = 1024;
 	ComDCM->XoffLim = 1024;
 	ComDCM->fDsrSensitivity=FALSE;
-	return SetCommState(PortHandle, ComDCM);
+
+    return SetCommState( PortHandle, ComDCM.get() );
 }
-bool 	COMPort::Set_DCB_Settings(DCB * DCB_Settings)
-{
-	if (ComDCM)
-	{
-		delete ComDCM;
-	}
-	ComDCM=DCB_Settings;
-	return SetCommState(PortHandle, ComDCM);
+bool COMPort::Set_DCB_Settings( std::unique_ptr< DCB > DCB_Settings )
+{	
+    ComDCM = std::move( DCB_Settings );
+    return SetCommState( PortHandle, ComDCM.get() );
 }
-//информация о порте
-bool 	COMPort::IsOK() const
+//РёРЅС„РѕСЂРјР°С†РёСЏ Рѕ РїРѕСЂС‚Рµ
+bool COMPort::IsOK() const
 {
 	return PortHandle != 0;
 }
-DCB * 	COMPort::Get_port_Settings(void)
+std::unique_ptr<DCB> COMPort::Get_port_Settings(void)
 {
-	DCB *Result=new DCB();
-	Result->DCBlength = sizeof(DCB);
-	GetCommState(PortHandle, Result);
+    std::unique_ptr< DCB >Result( new DCB() );
+    Result->DCBlength = sizeof( DCB );
+    GetCommState( PortHandle, Result.get() );
 	return Result;
 }
- //буфер приема/передачи
-void 	COMPort::Write	(const BYTE* buff,	size_t len)
+ //Р±СѓС„РµСЂ РїСЂРёРµРјР°/РїРµСЂРµРґР°С‡Рё
+void COMPort::Write	( const BYTE* buff, size_t len )
 {
 	DWORD feedback;
-	if(!WriteFile(PortHandle, buff, len, &feedback, 0) || feedback !=len)
+    if( !WriteFile( PortHandle, buff, len, &feedback, 0 ) || feedback !=len )
 	{
-		throw Exception("Ошибка записи");
+        throw std::runtime_error("РћС€РёР±РєР° Р·Р°РїРёСЃРё");
 	}
 	// In some cases it's worth uncommenting
 	//FlushFileBuffers(m_Handle);
  }
-void 	COMPort::Read(BYTE *buff,	size_t &len)
+size_t COMPort::Read( BYTE *buff, size_t len )
 {
 	//DWORD begin = GetTickCount();
 	DWORD feedback =0;
 
-	if(!ReadFile(PortHandle, buff,len, &feedback, NULL))
+    if( !ReadFile( PortHandle, buff, len, &feedback, NULL ) )
 	{
-		throw Exception("Ошибка чтения");
+        throw std::runtime_error("РћС€РёР±РєР° С‡С‚РµРЅРёСЏ");
 	}
-	len=feedback;
+    return feedback;
 }
-bool 	COMPort::Clear_Com_Buff	(Purge_flags flags)
+bool COMPort::Clear_Com_Buff (Purge_flags flags)
 {
-	return PurgeComm(PortHandle,flags);
+    return PurgeComm( PortHandle, flags );
 }
-//сигнальные выводы порта
-bool 	COMPort::DTR_On(unsigned int w8_before,unsigned int w8_after)
+//СЃРёРіРЅР°Р»СЊРЅС‹Рµ РІС‹РІРѕРґС‹ РїРѕСЂС‚Р°
+bool COMPort::DTR_On( unsigned int w8_before, unsigned int w8_after )
 {
 	if (w8_before)
 	{
-		Sleep(w8_before);
+        std::this_thread::sleep_for( std::chrono::milliseconds( w8_before ) );
 	}
-	bool result=EscapeCommFunction(PortHandle,SETDTR);
-	if (w8_after)
+    bool result = EscapeCommFunction( PortHandle, SETDTR );
+    if ( w8_after )
 	{
-		Sleep(w8_after);
+        std::this_thread::sleep_for( std::chrono::milliseconds( w8_after ) );
 	}
 	return result;
 }
-bool 	COMPort::DTR_oFF(unsigned int w8_before,unsigned int w8_after)
+bool COMPort::DTR_oFF( unsigned int w8_before, unsigned int w8_after )
 {
-	if (w8_before)
-	{
-		Sleep(w8_before);
-	}
-	bool result=EscapeCommFunction(PortHandle,CLRDTR);
-	if (w8_after)
-	{
-		Sleep(w8_after);
-	}
+    if (w8_before)
+    {
+        std::this_thread::sleep_for( std::chrono::milliseconds( w8_before ) );
+    }
+    bool result = EscapeCommFunction( PortHandle, CLRDTR );
+    if ( w8_after )
+    {
+        std::this_thread::sleep_for( std::chrono::milliseconds( w8_after ) );
+    }
 	return result;
 }
