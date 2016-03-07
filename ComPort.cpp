@@ -155,7 +155,7 @@ size_t COMPort::Read( BYTE *buff, size_t len )
 	}
     return feedback;
 }
-bool COMPort::Clear_Com_Buff (Purge_flags flags)
+bool COMPort::Clear_Com_Buff (DWORD flags)
 {
     return PurgeComm( PortHandle, flags );
 }

@@ -93,7 +93,7 @@ public:
                            StopBits stop_bits );
     bool Set_DCB_Settings( std::unique_ptr< DCB >  DCB_Settings );
 //буфер приема/передачи
-    bool Clear_Com_Buff	( Purge_flags flags );
+    bool Clear_Com_Buff	(DWORD flags );
     void Write ( const BYTE* buff, size_t len );
     size_t Read( BYTE *buff, size_t len );
 //сигнальные выводы порта
