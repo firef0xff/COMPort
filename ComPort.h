@@ -118,8 +118,8 @@ static bool SetCommState( HANDLE, DCB* ) {return true;}
 static bool GetCommState( HANDLE, DCB* ) {return true;}
 static bool EscapeCommFunction( HANDLE, DWORD ) {return true;}
 static bool PurgeComm( HANDLE, DWORD ) {return true;}
-static bool WriteFile( HANDLE, BYTE const*, DWORD, DWORD*, void* ){return true;}
-static bool ReadFile( HANDLE, BYTE*, DWORD, DWORD*, void* ){return true;}
+static bool WriteFile( HANDLE, BYTE const*, DWORD len, DWORD* fb, void* ){ if (fb) *fb = len; return true;}
+static bool ReadFile( HANDLE, BYTE*, DWORD len, DWORD* fb, void* ){ if (fb) *fb = len; return true;}
 #endif
 
 #include <string>
