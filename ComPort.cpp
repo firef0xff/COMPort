@@ -186,3 +186,30 @@ bool COMPort::DTR_oFF( unsigned int w8_before, unsigned int w8_after )
     }
 	return result;
 }
+//сигнальные выводы порта
+bool COMPort::RTS_On( unsigned int w8_before, unsigned int w8_after )
+{
+    if (w8_before)
+    {
+        std::this_thread::sleep_for( std::chrono::milliseconds( w8_before ) );
+    }
+    bool result = EscapeCommFunction( PortHandle, SETRTS );
+    if ( w8_after )
+    {
+        std::this_thread::sleep_for( std::chrono::milliseconds( w8_after ) );
+    }
+    return result;
+}
+bool COMPort::RTS_oFF( unsigned int w8_before, unsigned int w8_after )
+{
+    if (w8_before)
+    {
+        std::this_thread::sleep_for( std::chrono::milliseconds( w8_before ) );
+    }
+    bool result = EscapeCommFunction( PortHandle, CLRRTS );
+    if ( w8_after )
+    {
+        std::this_thread::sleep_for( std::chrono::milliseconds( w8_after ) );
+    }
+    return result;
+}

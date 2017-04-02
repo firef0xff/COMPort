@@ -5,10 +5,12 @@
     #define NOMINMAX //иначе API windows определит макросы min и max, конфликтующие с std::max и std::min в vector
 #endif
 
+#ifndef DEMO
 #include <windows.h>
 #endif
+#endif
 
-#if defined( DEMO ) && not defined( WINDOWS )
+#if defined( DEMO ) || !defined(WINDOWS)
 
 #define CBR_110 110
 #define CBR_300 300
@@ -63,16 +65,29 @@ typedef int DWORD;
 typedef unsigned char BYTE;
 
 typedef int HANDLE;
-#define DTR_CONTROL_DISABLE 0
-#define RTS_CONTROL_DISABLE 0
+#define DTR_CONTROL_DISABLE 0x0
+#define DTR_CONTROL_ENABLE 0x1
+#define DTR_CONTROL_HANDSHAKE 0x2
+
+#define RTS_CONTROL_DISABLE 0x0
+#define RTS_CONTROL_ENABLE 0x1
+#define RTS_CONTROL_HANDSHAKE 0x2
+#define RTS_CONTROL_TOGGLE 0x3
 
 #define GENERIC_READ 0
 #define GENERIC_WRITE 1
 #define OPEN_EXISTING 0
 #define FILE_ATTRIBUTE_NORMAL 0
 
-#define CLRDTR 0
-#define SETDTR 1
+#define SETXOFF 1
+#define SETXON 2
+#define SETRTS 3
+#define CLRRTS 4
+#define SETDTR 5
+#define CLRDTR 6
+#define RESETDEV 7
+#define SETBREAK 8
+#define CLRBREAK 9
 
 
 struct COMMTIMEOUTS
@@ -221,6 +236,10 @@ public:
     bool DTR_oFF ( unsigned int w8_before=0,
                    unsigned int w8_after=0 );
 
+    bool RTS_On ( unsigned int w8_before=0,
+                  unsigned int w8_after=0 );
+    bool RTS_oFF ( unsigned int w8_before=0,
+                   unsigned int w8_after=0 );
 private:
     const std::string port_name;
     std::unique_ptr< COMMTIMEOUTS > TimeOuts;
