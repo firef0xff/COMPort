@@ -1,4 +1,7 @@
-#pragma once
+﻿#pragma once
+#ifndef  COMPORT_H
+#define  COMPORT_H
+
 
 #ifdef WINDOWS
 #ifndef NOMINMAX
@@ -246,3 +249,4 @@ private:
     std::unique_ptr< DCB > ComDCM;
     HANDLE PortHandle;
 };
+#endif
