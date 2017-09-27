@@ -1,5 +1,4 @@
-﻿#pragma hdrstop
-#include "ComPort.h"
+﻿#include "ComPort.h"
 #include <stdexcept>
 
 #include <thread>
@@ -134,7 +133,7 @@ std::unique_ptr<DCB>COMPort::Get_port_Settings(void)
 void COMPort::Write(const BYTE* buff, size_t len)
 {
    DWORD feedback;
-   if (!WriteFile(PortHandle, buff, len, &feedback, 0) || feedback != len)
+   if (!WriteFile(PortHandle, buff, len, &feedback, 0) || static_cast<size_t>( feedback ) != len)
    {
       throw std::runtime_error("Ошибка записи");
    }
